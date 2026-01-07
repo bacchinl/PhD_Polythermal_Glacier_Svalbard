@@ -1,0 +1,59 @@
+# @package _global_
+
+# hydra:
+#   job:
+#     chdir: True
+
+defaults:
+  - /user/conf/processes@processes.clim_werensk: clim_werensk
+  - override /inputs: 
+    - local
+  - override /processes: 
+    - clim_werensk
+    - smb_simple
+    - iceflow
+    - time
+    - thk
+  - override /outputs: 
+    - local
+    - plot2d
+
+  # - override /hydra/launcher: joblib # no error but does not seem to work compared to if you call it on the command line...
+  # experiment: params # can we make it work here?
+
+  # How to override help:
+  # - hydra/help: my_app_help
+  # - override hydra/help: my_app_help
+
+inputs:
+  local:
+     type: netcdf
+     filename: input_new_with_thk.nc
+     coarsening:
+       ratio: 2
+     
+processes:
+  smb_simple:
+    file: /home/lucie/igm/igm/werensk-basic/data/smb_simple_werensk_utf8.txt
+  
+  iceflow:
+    emulator:
+      #exclude_borders: 1
+      retrain_freq: 10
+      lr: 1.04e-4
+    physics:
+      init_arrhenius: 78
+      dim_arrhenius: 3
+      init_slidingco: 0.21   
+    
+
+  time:
+    start: 1990.0
+    end: 2022.0
+    save: 1.0
+    
+outputs:
+  plot2d:
+    live: False
+    
+    
