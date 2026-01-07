@@ -1,2 +1,2 @@
 # PhD_Polythermal_Glacier_Svalbard
-IGM codes with customed Enthalpy module
+- Modelling the evolution of Svalbard polythermal glaciers with IGM -
