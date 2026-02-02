@@ -12,18 +12,18 @@ def initialize(cfg, state):
         "thk": ["Ice Thickness", "m"],
         "icemask": ["Ice mask", "NO UNIT"],
         "smb": ["Surface Mass Balance", "m/y ice eq"],
-        "ubar": ["x depth-average velocity of ice", "m/y"],
-        "vbar": ["y depth-average velocity of ice", "m/y"],
-        "velbar_mag": ["Depth-average velocity magnitude of ice", "m/y"],
-        "uvelsurf": ["x surface velocity of ice", "m/y"],
-        "vvelsurf": ["y surface velocity of ice", "m/y"],
-        "wvelsurf": ["z surface velocity of ice", "m/y"],
-        "velsurf_mag": ["Surface velocity magnitude of ice", "m/y"],
-        "uvelbase": ["x basal velocity of ice", "m/y"],
-        "vvelbase": ["y basal velocity of ice", "m/y"],
-        "wvelbase": ["z basal velocity of ice", "m/y"],
-        "velbase_mag": ["Basal velocity magnitude of ice", "m/y"],
-        "divflux": ["Divergence of the ice flux", "m/y"],
+     	"ubar": ["x depth-average velocity of ice", "m/y"], 
+    	"vbar": ["y depth-average velocity of ice", "m/y"], 
+ 	    "velbar_mag": ["Depth-average velocity magnitude of ice", "m/y"], 
+ 	    "uvelsurf": ["x surface velocity of ice", "m/y"], 
+ 	    "vvelsurf": ["y surface velocity of ice", "m/y"], 
+ 	    "wvelsurf": ["z surface velocity of ice", "m/y"], 
+ 	    "velsurf_mag": ["Surface velocity magnitude of ice", "m/y"], 
+ 	    "uvelbase": ["x basal velocity of ice", "m/y"], 
+ 	    "vvelbase": ["y basal velocity of ice", "m/y"], 
+ 	    "wvelbase": ["z basal velocity of ice", "m/y"], 
+ 	    "velbase_mag": ["Basal velocity magnitude of ice", "m/y"], 
+ 	    "divflux": ["Divergence of the ice flux", "m/y"],
         "strflowctrl": ["arrhenius+1.0*slidingco", "MPa$^{-3}$ a$^{-1}$"],
         "dtopgdt": ["Erosion rate", "m/y"],
         "arrhenius": ["Arrhenius factor", "MPa$^{-3}$ a$^{-1}$"],
@@ -33,11 +33,12 @@ def initialize(cfg, state):
         "velsurfobs_mag": ["Obs. surf. speed of ice", "m/y"],
         "weight_particles": ["weight_particles", "no"],
         "T": ["Temperature of the ice", "K"],
-        "Tpmp": ["Temperature of the pressure melting point", "K"],
+        "T_pmp": ["Temperature of the pressure melting point", "K"],
         "E": ["Enthalpy", "J kg$^{-1}$"],
-        "omega": ["Fraction of water content", "-"]
-        "strainheat": ["Strain heating", "W m$^{-3}$"],
-        "frictheat": ["Friction heating", "W m$^{-2}$"]
+        "E_pmp": ["Enthalpy at the pressure melting point", "J kg$^{-1}$"],
+        "omega": ["Fraction of water content", "-"],
+        "straini_heat": ["Strain heating", "W m$^{-3}$"],
+        "frictional_heat": ["Friction heating", "W m$^{-2}$"]
     }
 
     state.var_info_ncdf_ts = {}
@@ -51,29 +52,29 @@ def run(cfg, state):
         return
 
     # Prepare any derived quantities
-    if "velbar_mag" in cfg.outputs.local.vars_to_save:
+    if "velbar_mag" in cfg.outputs.my_local.vars_to_save:
         state.velbar_mag = getmag(state.ubar, state.vbar)
 
-    if "velsurf_mag" in cfg.outputs.local.vars_to_save:
+    if "velsurf_mag" in cfg.outputs.my_local.vars_to_save:
         state.velsurf_mag = getmag(state.uvelsurf, state.vvelsurf)
 
-    if "velbase_mag" in cfg.outputs.local.vars_to_save:
+    if "velbase_mag" in cfg.outputs.my_local.vars_to_save:
         state.velbase_mag = getmag(state.uvelbase, state.vvelbase)
 
-    if 'netcdf' in cfg.outputs.local.file_format_list:
+    if 'netcdf' in cfg.outputs.my_local.file_format_list:
         update_netcdf_ex(cfg,state)
     
-    if 'tif' in cfg.outputs.local.file_format_list:
+    if 'tif' in cfg.outputs.my_local.file_format_list:
         write_tif(cfg,state)
 
-    if cfg.outputs.local.write_ts:
+    if cfg.outputs.my_local.write_ts:
         update_netcdf_ts(cfg,state)
 
 #############################################
 
 def write_tif(cfg,state):
 
-    var_list = cfg.outputs.local.vars_to_save
+    var_list = cfg.outputs.my_local.vars_to_save
 
     for var in var_list:
         if not hasattr(state, var):
@@ -88,8 +89,8 @@ def write_tif(cfg,state):
             coords={"y": state.y.numpy(), "x": state.x.numpy()}
         )
 
-        if "crs" in cfg.outputs.local:
-            data_array.rio.write_crs(cfg.outputs.local.crs, inplace=True)
+        if "crs" in cfg.outputs.my_local:
+            data_array.rio.write_crs(cfg.outputs.my_local.crs, inplace=True)
 
         data_array.rio.to_raster(file_name)
 
@@ -97,24 +98,45 @@ def write_tif(cfg,state):
 
 def update_netcdf_ex(cfg,state):
 
-    file_path = cfg.outputs.local.output_file
-    var_list = cfg.outputs.local.vars_to_save
+    file_path = cfg.outputs.my_local.output_file
+    var_list = cfg.outputs.my_local.vars_to_save
 
     def create_data_vars():
-        data_vars = {}
-        for var in var_list:
-            if not hasattr(state, var):
-                continue
-            arr = vars(state)[var].numpy()
-            dims = ("y", "x") if arr.ndim == 2 else ("z", "y", "x")
-            data = xr.DataArray(arr, dims=dims)
-            data = data.expand_dims(time=[getattr(state, 't', tf.constant(0)).numpy()])
-            attrs = {}
-            if var in state.var_info_ncdf_ex:
-                attrs["long_name"], attrs["units"] = state.var_info_ncdf_ex[var]
-            data.attrs = attrs
-            data_vars[var] = data
-        return data_vars
+    data_vars = {}
+
+    for var in var_list:
+        if not hasattr(state, var):
+            continue
+
+        arr = vars(state)[var].numpy()
+
+        if arr.ndim == 2:
+            data = xr.DataArray(
+                arr,
+                dims=("y", "x"),
+            )
+
+        elif arr.ndim == 3:
+            Nz = arr.shape[0]
+            data = xr.DataArray(
+                arr,
+                dims=("z", "y", "x"),
+                coords={"z": np.arange(Nz)}
+            )
+
+        else:
+            continue  # sécurité
+
+        data = data.expand_dims(
+            time=[getattr(state, 't', tf.constant(0)).numpy()]
+        )
+
+        if var in state.var_info_ncdf_ex:
+            data.attrs["long_name"], data.attrs["units"] = state.var_info_ncdf_ex[var]
+
+        data_vars[var] = data
+
+    return data_vars
 
     if not hasattr(state, "already_called_update_local"):
         if hasattr(state, "logger"):
@@ -126,8 +148,8 @@ def update_netcdf_ex(cfg,state):
             "time": ("time", [getattr(state, 't', tf.constant(0)).numpy()])
         }
 
-        if (hasattr(cfg, 'processes') and hasattr(cfg.processes, 'iceflow')):
-            coords["z"] = ("z", np.arange(cfg.processes.iceflow.numerics.Nz))
+        #if (hasattr(cfg, 'processes') and hasattr(cfg.processes, 'iceflow')):
+         #   coords["z"] = ("z", np.arange(cfg.processes.enthalpy.numerics.Nz))
 
         ds = xr.Dataset(
             data_vars=create_data_vars(),
@@ -159,7 +181,7 @@ def update_netcdf_ex(cfg,state):
 
 def update_netcdf_ts(cfg,state):
 
-    file_path = cfg.outputs.local.output_ts_file
+    file_path = cfg.outputs.my_local.output_ts_file
     
     vol = np.sum(state.thk) * (state.dx**2) / 10**9
     area = np.sum(state.thk > 1) * (state.dx**2) / 10**6
