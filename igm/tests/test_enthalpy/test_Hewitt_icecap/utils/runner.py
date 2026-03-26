@@ -9,7 +9,7 @@ import os
 import pytest
 
 from .experiments import setup_experiment, run_simulation
-from .plots_new_new import plot_results
+from .plots import plot_results
 from .validation import validate_results
 
 _TEST_DIR = os.path.dirname(os.path.abspath(__file__))
