@@ -24,7 +24,7 @@ def add_refreezing_heat_source(cfg: DictConfig, state: State) -> None:
     firn_mask = depth <= depth_firn
     
 
-    ela = 360 #cfg.processes.enthalpy.surface.ela #state.ELA 
+    ela = cfg.processes.enthalpy.surface.ela #state.ELA 
     mask_above_ela = state.usurf > ela
     firn_mask = firn_mask & mask_above_ela[None, ...]
 
