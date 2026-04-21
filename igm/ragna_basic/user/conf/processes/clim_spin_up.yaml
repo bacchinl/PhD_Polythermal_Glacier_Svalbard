@@ -1,0 +1,5 @@
+# @package processes.clim_spin_up
+update_freq: 1
+time_resolution: 365
+name_file: "clim_ragna_1750_prec.dat"
+spin_up_year: 1989

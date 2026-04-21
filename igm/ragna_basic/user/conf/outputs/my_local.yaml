@@ -1,0 +1,20 @@
+file_format_list: ['netcdf']
+output_file: output.nc
+vars_to_save:
+  - topg
+  - usurf
+  - thk
+  - smb
+  - uvelsurf
+  - vvelsurf
+  - T
+  - T_pmp
+  - E
+  - E_pmp
+  - slidingco
+  - omega
+  - strain_heat
+  - frictional_heat 
+  - refreezing_heat 
+write_ts: True
+output_ts_file: output_ts.nc

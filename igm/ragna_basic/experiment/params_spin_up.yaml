@@ -1,0 +1,104 @@
+# @package _global_
+
+# hydra:
+#   job:
+#     chdir: True
+
+defaults:
+  - /user/conf/outputs@outputs.my_local: my_local
+  - /user/conf/processes@processes.clim_spin_up: clim_spin_up
+  - override /inputs: 
+    - local
+  - override /processes: 
+    - clim_spin_up
+      #- smb_simple
+    - iceflow
+    - time
+      #- thk
+      #- vert_flow
+    - enthalpy
+  - override /outputs: 
+    - local
+    - my_local
+
+  # - override /hydra/launcher: joblib # no error but does not seem to work compared to if you call it on the command line...
+  # experiment: params # can we make it work here?
+
+  # How to override help:
+  # - hydra/help: my_app_help
+  # - override hydra/help: my_app_help
+
+inputs:
+  local:
+     type: netcdf
+     filename: input_Ragna-Mariebreen_2024_GPR_bed.nc
+       #filename: input_Ragna-Mariebreen_1990_mask.nc
+     coarsening:
+       ratio: 4
+     
+     
+processes:
+  clim_spin_up:
+    spin_up_year: 2023
+  #smb_simple:
+  #  file: /home/lucie/igm/igm/werensk-basic/data/smb_simple_werensk_utf8_long.txt
+  # array:  
+  #   - ["time", "gradabl", "gradacc", "ela", "accmax"]
+  #   - [1911, 0.002, 0.004, 400, 2.0]
+  #   - [1989, 0.002, -0.004, 1271, 2.0]
+  #   - [2000, 0.002, 0.004, 445, 2.0]
+  #   - [2020, 0.001, 0.008, 563, 2.0]
+  iceflow:
+    method: unified
+    unified:
+      mapping: identity 
+      nbit: 1000
+      optimizer: adam
+        #adam:
+        #lr: 0.9
+      nbit_init: 10000
+      retrain_freq: 4
+      network:
+        pretrained: False
+      halt:
+        freq: 1
+        success:
+          - criterion: patience
+            metric: cost
+            patience:
+              patience: 100 
+      display:
+        print_cost: True
+    numerics:
+      Nz: 2
+      basis_vertical: molho
+      basis_horizontal: q1
+      vert_spacing: 4.0 
+    physics:
+      init_arrhenius: 78
+      #dim_arrhenius: 3
+      init_slidingco: 0.10   
+  enthalpy:
+    numerics:
+      Nz: 30
+    thermal:
+      basal_heat_flux_ref: 0.040 ## Schafer et al 2012, Sensitivity of basal condition
+    till:
+      hydro:
+        drainage_rate: 30
+    solver:
+      allow_refreezing_firn: False
+    surface:
+      depth_firn: 25
+      ela: 500
+      T_offset: 0.0
+
+
+
+  time:
+    start: 1750.0
+    end: 1990.0
+    save: 20.0
+    
+
+    
