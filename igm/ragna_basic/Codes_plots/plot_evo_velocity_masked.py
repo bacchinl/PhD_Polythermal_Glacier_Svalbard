@@ -10,10 +10,14 @@ from scipy.interpolate import RegularGridInterpolator, splprep, splev
 import rasterio
 from rasterio.transform import from_bounds
 from rasterio.features import rasterize
+from affine import Affine
+import contextily as ctx
+
 # ----------------------------
 # Paths and output directory
 # ----------------------------
-date_simu = "2026-04-15/11-36-42"
+date_simu = "2026-04-28/09-50-57" # Poster : "2026-04-20/15-27-52"without "2026-04-20/12-11-45"with  
+
 
 
 
@@ -22,11 +26,24 @@ out_dir = os.path.join("../outputs", date_simu, "Plots/velocities")
 os.makedirs(out_dir, exist_ok=True)
 
 which_flowline = "ragna"
-flowline_file = os.path.join("../data/", f"flowline_ragna.csv")
+flowline_file = os.path.join("../data/", f"centerline_ragna_EM_mod.csv")
 
 
-point_fin = 8.2e3 # en m
+point_fin = 7.2e3 # en m
 smooth = True
+
+
+# ----------------------------
+# Extent
+# ----------------------------
+extent = {
+    "xmin": 553000,
+    "xmax": 558700,
+    "ymin": 8633000,
+    "ymax": 8640500
+}
+
+
 # ----------------------------
 # Load flowline from CSV
 # ----------------------------
@@ -70,25 +87,43 @@ years = np.array([int(t) for t in time.values])
 ntime = len(years)
 print(f"{ntime} time steps loaded, example years: {years[:5]} ... {years[-5:]}")
 
+# Output_resolution
+dx = x[1] - x[0]
+dy = y[1] - y[0]
+
+transform = Affine.translation(x.min(), y.min()) * Affine.scale(dx, dy)
+
+# Dimensions (y, x)
+ny = len(y)
+nx = len(x)
+
 # ----------------------------
 # Mask
 # ----------------------------
 nom_glacier = "Ragna-Mariebreen"
 
 
-#path_shp_1990 = "~/PhD_Lucie/DATA/GLACIER_OUTLINES/CryoClim_GAO_SJ_1990/"
-#shp_path_1990 = os.path.join(path_shp_1990, "CryoClim_GAO_SJ_1990.shp")
-#gdf = gpd.read_file(shp_path_1990)
+path_shp_2010 = "~/PhD_Lucie/DATA/GLACIER_OUTLINES/CryoClim_GAO_SJ_2001-2010/"
+shp_path_2010 = os.path.join(path_shp_2010, "CryoClim_GAO_SJ_2001-2010.shp")
+gdf = gpd.read_file(shp_path_2010)
 
-#gdf_one = gdf[gdf["NAME"] == nom_glacier]
-#transform_sub = from_bounds(x_min, y_min, x_max, y_max, x, y)
-#ny, nx = u_var.shape
-#shapes = [(geom, 1) for geom in gdf_one.geometry]
+gdf_one = gdf[gdf["NAME"] == nom_glacier]
+
+print("GDF ", nom_glacier,  gdf_one)
+
+shapes_list = [(geom, 1) for geom in gdf_one.geometry]
+
+mask = rasterize(
+    shapes_list,
+    out_shape=(ny, nx),
+    transform=transform,
+    fill=0,
+    dtype='uint8'
+)
 
 
-
-#print(f"---mask_main shape (only {nom_glacier}):", .shape)
-#print("   Nb pixels glacier:", np.sum(mask_main))
+print(f"---mask_main shape (only {nom_glacier}):", mask.shape)
+print("   Nb pixels glacier:", np.sum(mask))
 # ----------------------------
 # Ensure y is monotonically increasing
 # ----------------------------
@@ -120,7 +155,7 @@ print("Velocity interpolation along the flowline completed. Shape:", speed_along
 # ----------------------------
 # Plot velocity profiles along flowline (every other year)
 # ----------------------------
-years_to_plot = years[::2]
+years_to_plot = years #[::2]
 cmap = plt.colormaps.get('turbo_r')
 norm = mcolors.Normalize(vmin=years_to_plot.min(), vmax=years_to_plot.max())
 
@@ -170,10 +205,22 @@ else:
     y_plot = y
 
 speed_last = np.sqrt(u_last**2 + v_last**2)
+speed_last = np.where(mask, speed_last, np.nan)
 
 # normalize vectors for homogeneous quiver
 u_dir = u_last / np.where(speed_last == 0, np.nan, speed_last)
 v_dir = v_last / np.where(speed_last == 0, np.nan, speed_last)
+
+ix = np.where((x >= extent["xmin"]) & (x <= extent["xmax"]))[0]
+iy = np.where((y_plot >= extent["ymin"]) & (y_plot <= extent["ymax"]))[0]
+
+x_sub = x[ix]
+y_sub = y_plot[iy]
+
+speed_sub = speed_last[np.ix_(iy, ix)]
+u_dir_sub = u_dir[np.ix_(iy, ix)]
+v_dir_sub = v_dir[np.ix_(iy, ix)]
+
 
 # optional: smooth flowline using spline
 tck, _ = splprep(np.vstack([x_flow, y_flow]), s=0, k=min(3, len(x_flow)-1))
@@ -213,41 +260,54 @@ plt.savefig(os.path.join(out_dir, f"velocity_field_flowline_{which_flowline}_{ye
 plt.show()
 
 
+########## PLOT STREAMLINES #########
+fig,ax = plt.subplots(figsize=(10, 8))
 
-plt.figure(figsize=(10, 8))
-
+alpha_sub = np.where(speed_sub > 0, 1.0, 0.0)
 # ---- Background velocity amplitude ----
-plt.pcolormesh(x, y_plot, speed_last, shading='auto',
-               cmap='rainbow', alpha=alpha, vmin=0, vmax=10)
-plt.colorbar(label="Velocity (m/an)")
+im=ax.pcolormesh(x_sub, y_sub, speed_sub, shading='auto',
+               cmap='rainbow',alpha=alpha_sub, vmin=0, vmax=3)
+cbar=plt.colorbar(im, ax=ax)
 
 # ---- Grid ----
-X, Y = np.meshgrid(x, y_plot)
+X, Y = np.meshgrid(x_sub, y_sub)
 
 # -------------------------------
 # STREAMPLOT
 # -------------------------------
-plt.streamplot(
+ax.streamplot(
     X, Y,
-    u_dir, v_dir,            # direction field
+    u_dir_sub, v_dir_sub,            # direction field
     density=2,             # increase for more curves
     color='k',               # streamline color
     linewidth=0.8,           # line thickness
     arrowsize=0.8            # small arrowheads on the streamlines
 )
 
-# ---- Plot flowline ----
-#plt.plot(x_flow_smooth, y_flow_smooth,         'r-', linewidth=2.5, label="Flowline")
 
-# ---- Point_fin ----
-#plt.scatter(x_point_fin, y_point_fin,            color='green', edgecolor='black', s=20, zorder=5,label=f"Point @ {point_fin/1000:.1f} km")
+ctx.add_basemap(
+    ax,
+    crs="EPSG:32633",
+    source=ctx.providers.Esri.WorldImagery
+)
 
-plt.title(f"Velocity field and streamlines – Year {years[i_last]}")
-plt.xlabel("x (m)")
-plt.ylabel("y (m)")
-plt.legend()
-plt.axis("equal")
-plt.tight_layout()
+ax.set_xlim(extent["xmin"], extent["xmax"])
+ax.set_ylim(extent["ymin"], extent["ymax"])
+
+
+ax.set_title(f"Velocity field and streamlines – Year 2024")
+ax.set_xlabel("Longitude", fontsize = 14)
+ax.set_ylabel("Latitude", fontsize = 14)
+#ax.legend()
+
+cbar.set_ticks([0, 1,2,3])
+cbar.set_label("Velocity (m/a)", fontsize=16)
+cbar.ax.tick_params(labelsize=12)
+
+ax.set_autoscale_on(False)
+
+#plt.axis("equal")
+#plt.tight_layout()
 plt.savefig(os.path.join(out_dir,
             f"velocity_field_flowline_{which_flowline}_{years[i_last]}_streamlines.png"),
             dpi=200)

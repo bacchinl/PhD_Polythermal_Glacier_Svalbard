@@ -12,7 +12,7 @@ import imageio
 # =====================================================
 # PARAMETERS
 # =====================================================
-date_simu = "2026-04-20/15-27-52/"
+date_simu = "2026-04-28/09-50-57/"
 which_flowline = "Ragna-Mariebreen"
 point_fin = 8.4e3  # m
 smooth = True
@@ -154,13 +154,7 @@ colors = cmap(np.linspace(0, 1, len(years)))
 for i, yr in enumerate(years):
     plt.plot(dist_km, cold_thickness[i, mask_flow], color=colors[i], alpha=0.8,label=str(yr))
 
-plt.plot(
-    dist_km,
-    np.nanmean(cold_thickness[:, mask_flow], axis=0),
-    color="k",
-    linewidth=2,
-    label="Mean"
-)
+#plt.plot(dist_km,np.nanmean(cold_thickness[:, mask_flow], axis=0),color="k",linewidth=2,label="Mean")
 
 plt.xlabel("Distance along flowline (km)")
 plt.ylabel("Cold layer thickness (m)")
@@ -169,7 +163,7 @@ plt.legend()
 plt.grid(True)
 plt.tight_layout()
 plt.savefig(os.path.join(out_dir, "cold_layer_thickness_along_flowline.png"), dpi=200)
-plt.show()
+#plt.show()
 
 # =====================================================
 # 🎨 COLORMAP ICE TYPE
@@ -238,9 +232,12 @@ for it in indices:
         label="Bedrock"
     )
 
-    plt.xlabel("Distance along flowline (km)")
-    plt.ylabel("Altitude (m a.s.l.)")
-    plt.title(f"Ice type vertical section – {which_flowline} – without refreezing")
+    plt.xlabel("Distance along flowline (km)", fontsize=14)
+    plt.ylabel("Altitude (m a.s.l.)", fontsize=14)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    
+    plt.title(f"Ice type vertical section – {which_flowline} – with refreezing", fontsize=16)
     plt.grid(True, linestyle=":")
     plt.tight_layout()
 

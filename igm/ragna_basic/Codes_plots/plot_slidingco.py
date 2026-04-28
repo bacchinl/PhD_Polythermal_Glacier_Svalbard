@@ -1,24 +1,29 @@
 import os
 import numpy as np
 import pandas as pd
+import geopandas as gpd
 import xarray as xr
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 from scipy.interpolate import RegularGridInterpolator, splprep, splev
-
+import rasterio
+from rasterio.transform import from_bounds
+from rasterio.features import rasterize
+from affine import Affine
+import contextily as ctx
 # ----------------------------
 # Paths and output directory
 # ----------------------------
-date_simu = "2026-02-12/09-24-16/"
-
+date_simu = "2026-04-28/09-50-57/"
+nom_glacier = "Ragna-Mariebreen"
 
 simu_path = os.path.join( "../outputs", date_simu)
 out_dir = os.path.join("../outputs", date_simu, "Plots/sliding_co")
 os.makedirs(out_dir, exist_ok=True)
 
-which_flowline = "werenskiold_south"
-flowline_file = os.path.join("../data", f"flowline_{which_flowline}_2022.csv")
+which_flowline = "ragna"
+flowline_file = os.path.join("../data", f"centerline_ragna_EM_mod.csv")
 
 
 point_fin = 5.7e3 # en m
@@ -66,6 +71,18 @@ years = np.array([int(t) for t in time.values])
 ntime = len(years)
 print(f"{ntime} time steps loaded, example years: {years[:5]} ... {years[-5:]}")
 
+# Output_resolution
+dx = x[1] - x[0]
+dy = y[1] - y[0]
+
+transform = Affine.translation(x.min(), y.min()) * Affine.scale(dx, dy)
+
+# Dimensions (y, x)
+ny = len(y)
+nx = len(x)
+
+
+
 # ----------------------------
 # Ensure y is monotonically increasing
 # ----------------------------
@@ -73,6 +90,29 @@ reverse_y = False
 if y[0] > y[-1]:
     y = y[::-1]
     reverse_y = True
+# ----------------------------
+# Mask
+# ----------------------------
+
+
+path_shp_2010 = "~/PhD_Lucie/DATA/GLACIER_OUTLINES/CryoClim_GAO_SJ_2001-2010/"
+shp_path_2010 = os.path.join(path_shp_2010, "CryoClim_GAO_SJ_2001-2010.shp")
+gdf = gpd.read_file(shp_path_2010)
+
+gdf_one = gdf[gdf["NAME"] == nom_glacier]
+
+print("GDF ", nom_glacier,  gdf_one)
+
+shapes_list = [(geom, 1) for geom in gdf_one.geometry]
+
+mask = rasterize(
+    shapes_list,
+    out_shape=(ny, nx),
+    transform=transform,
+    fill=0,
+    dtype='uint8'
+)
+
 
 # ----------------------------
 # Interpolate velocity along flowline
@@ -135,6 +175,7 @@ plt.show()
 # ----------------------------
 i_last = -1  # last time step
 slide_last = sliding_co.isel(time=i_last).values
+slide_last = np.where(mask, slide_last, np.nan)
 thk_last = thk.isel(time=i_last).values
 
 if reverse_y:
