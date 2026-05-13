@@ -19,8 +19,10 @@ enthalpy:
     beta: 7.9e-8
   surface:
     T_offset: 0.0
-    depth_firn: 5
-    ela : 400
+    use_accpdd: False
+    ela: 360
+    depth_firn: 6
+    refreezing_water: 0.5
   arrhenius:
     A_cold: 3.985e-13
     A_warm: 1.916e+3
@@ -30,6 +32,9 @@ enthalpy:
     omega_coef: 181.25
     omega_max: 0.01
     R: 8.314
+  sliding_co_thermal_switch: False
+  thermal_switch:
+    T0: 263.15
   till:
     friction:
       phi: 30.0
@@ -41,6 +46,7 @@ enthalpy:
       tauc_max: 1.0e+10
       tauc_ice_free: 1.0e+6
       u_ref: 100.0
+      #no_slide_on_frozen_bed: True
     hydro:
       h_water_till_max: 2.0
       N_ref: 1000.0
@@ -51,7 +57,7 @@ enthalpy:
   drainage:
     water_density: 1000.0
     drain_ice_column: True
-    omega_target: 0.01
+    omega_target: 0.00
     omega_threshold_1: 0.01
     omega_threshold_2: 0.02
     omega_threshold_3: 0.03    
