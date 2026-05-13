@@ -22,6 +22,6 @@ def compute_friction(cfg: DictConfig, state: State, E_pmp) -> None:
     state.phi = compute_phi(cfg, state)
     state.tauc = compute_tauc(cfg, state)
     if cfg.processes.enthalpy.sliding_co_thermal_switch :
-    	state.slidingco = compute_slidingco_thermal(cfg, state, E_pmp)
+    	state.slidingco = compute_slidingco_thermal_switch(cfg, state, E_pmp)
     else :
         state.slidingco = compute_slidingco_till(cfg, state)
