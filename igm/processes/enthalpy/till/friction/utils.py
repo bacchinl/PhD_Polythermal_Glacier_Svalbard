@@ -161,7 +161,7 @@ def compute_slidingco_frozen_bed(cfg: DictConfig, state: State, E_pmp) -> tf.Ten
     return sliding_co
 
 
-def compute_slidingco_thermal_switch(cfg: DictConfig, state: State, T, T_pmp, E_pmp) -> tf.Tensor:
+def compute_slidingco_thermal_switch(cfg: DictConfig, state: State, T) -> tf.Tensor:
     """
     Compute the sliding coefficient field for the Weertman sliding law.
 
@@ -178,7 +178,7 @@ def compute_slidingco_thermal_switch(cfg: DictConfig, state: State, T, T_pmp, E_
     m = cfg.processes.iceflow.physics.sliding.weertman.exponent
     T0 = cfg.processes.enthalpy.thermal_switch.T0
     Tb = T[1,:,:]
-    T_pmp_b = T_pmp[1,:,:]
+    T_pmp_b = state.T_pmp[1,:,:]
     	
     sliding_co_till = compute_slidingco_tf(tauc, u_ref, m)	
     sliding_co = sliding_co_till * tf.exp((Tpmp - Tb) / T0)
