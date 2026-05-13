@@ -34,7 +34,7 @@ enthalpy:
     R: 8.314
   sliding_co_thermal_switch: False
   thermal_switch:
-    T0: 263.15
+    T0: 1
   till:
     friction:
       phi: 30.0

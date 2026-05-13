@@ -27,7 +27,7 @@ def initialize(cfg: DictConfig, state: State) -> None:
     initialize_enthalpy_fields(cfg, state)
 
     # Compute E_pmp
-    E_pmp, _ = compute_pmp(cfg, state)
+    E_pmp, T_pmp = compute_pmp(cfg, state)
 
     # Compute (T, omega) from E
     T, omega = compute_temperature(cfg, state, E_pmp)
@@ -39,8 +39,9 @@ def initialize(cfg: DictConfig, state: State) -> None:
     compute_hydro(cfg, state)
 
     # Compute phi, tauc, slidingco (state.tauc, state.phi)
-    compute_friction(cfg, state, E_pmp, T)
-
+    
+    compute_friction(cfg, state, E_pmp, T, T_pmp)
+    
 
 def update(cfg: DictConfig, state: State) -> None:
     """Update enthalpy and related fields."""
@@ -53,7 +54,7 @@ def update(cfg: DictConfig, state: State) -> None:
     E_s, _ = compute_surface(cfg, state)
 
     # Pressure melting point enthalpy
-    E_pmp, _ = compute_pmp(cfg, state)
+    E_pmp, T_pmp = compute_pmp(cfg, state)
 
     # Volumetric strain heating and basal frictional heating
     strain_heat, friction_heat = compute_dissipation(cfg, state)
@@ -73,7 +74,7 @@ def update(cfg: DictConfig, state: State) -> None:
     update_hydro(cfg, state)
 
     # Till friction and yield stress (state.tauc, state.phi)
-    compute_friction(cfg, state, E_pmp, T)
+    compute_friction(cfg, state, E_pmp, T, T_pmp)
 
     compute_variables_enthalpy_state(cfg, state)
 

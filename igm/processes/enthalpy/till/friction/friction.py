@@ -10,7 +10,7 @@ from igm.common import State
 from .utils import compute_phi, compute_tauc, compute_slidingco_till, compute_slidingco_thermal_switch
 
 
-def compute_friction(cfg: DictConfig, state: State, E_pmp, T) -> None:
+def compute_friction(cfg: DictConfig, state: State, E_pmp, T, T_pmp) -> None:
     """
     Compute basal friction parameters for the till model.
 
@@ -22,6 +22,6 @@ def compute_friction(cfg: DictConfig, state: State, E_pmp, T) -> None:
     state.phi = compute_phi(cfg, state)
     state.tauc = compute_tauc(cfg, state)
     if cfg.processes.enthalpy.sliding_co_thermal_switch :
-    	state.slidingco = compute_slidingco_thermal_switch(cfg, state, T)
+    	state.slidingco = compute_slidingco_thermal_switch(cfg, state, T, T_pmp)
     else :
         state.slidingco = compute_slidingco_till(cfg, state)
