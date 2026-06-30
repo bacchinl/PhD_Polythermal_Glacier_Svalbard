@@ -1,7 +1,7 @@
 import geopandas as gpd
 from shapely.geometry import Polygon
 
-selected_year = 1936
+selected_year = 2010
 target_crs = "EPSG:32633"
 
 # =========================================================
@@ -25,6 +25,10 @@ if selected_year == 1936:
 elif selected_year == 1990:
     glacier_path = "~/PhD_Lucie/DATA/GLACIER_OUTLINES/CryoClim_GAO_SJ_1990/CryoClim_GAO_SJ_1990.shp"
     gdf_glaciers = gpd.read_file(glacier_path).to_crs(target_crs)
+elif selected_year == 2010:
+    glacier_path = "~/PhD_Lucie/DATA/GLACIER_OUTLINES/CryoClim_GAO_SJ_2001-2010/CryoClim_GAO_SJ_2001-2010.shp"
+    gdf_glaciers = gpd.read_file(glacier_path).to_crs(target_crs)
+
 
 gdf_glaciers = gdf_glaciers[gdf_glaciers.intersects(region_geom)] ## Only heerland
 

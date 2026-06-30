@@ -2,13 +2,16 @@ import os
 import numpy as np
 import xarray as xr
 import rasterio
+import pandas as pd
 import geopandas as gpd
 import matplotlib.pyplot as plt
+import glob
 
 from rasterio.transform import from_bounds
 from rasterio.warp import reproject, Resampling
 from rasterio.features import rasterize
 from shapely.geometry import Polygon
+from scipy.interpolate import griddata
 
 
 ####### COMPARE AND SAVE BEDROCK AT THE RIGHT RESOLUTION
@@ -34,6 +37,10 @@ study_area = Polygon([
     (xmax, ymin)
 ])
 
+glacier_list = ["edvardbreen", "kroppbreen", "ragna_mariebreen", "mettebreen", "vallakrabreen"]
+
+
+data_gpr_dir = os.path.expanduser("~/PhD_Lucie/DATA/GPR/Mannerfelt/thickness_cts_points_csv")
 
 # =========================================================
 # UTILITY FUNCTIONS
@@ -139,7 +146,7 @@ def plot_beds(bed, name):
     plt.show()
 
 def plot_beds_side_by_side(beds, names):
-    fig, axes = plt.subplots(1, 3, figsize=(14, 6))
+    fig, axes = plt.subplots(1, 4, figsize=(18, 6))
 
     for ax, bed, name in zip(axes, beds, names):
         im = ax.imshow(
@@ -183,6 +190,19 @@ def plot_diff_side_by_side(diffs, names, borne):
     #plt.tight_layout()
     plt.savefig("Differences_between_bedrocks.jpg", dpi = 200)
     plt.show()
+    
+    
+def interpolate_gpr_to_grid(x, y, values, Xg, Yg, method="linear"):
+    points = np.column_stack((x, y))
+
+    grid = griddata(
+        points,
+        values,
+        (Xg, Yg),
+        method=method
+    )
+
+    return grid
 
 
 # =========================================================
@@ -305,8 +325,38 @@ bed_franck_grid = reproject_raster_to_grid(
     grid_shape
 )
 
+# =========================================================
+# 5bis. GPR BEDROCK
+# =========================================================
+all_gpr_fields=[]
+Xg, Yg = np.meshgrid(x_grid, y_grid) # grid to interpolation gpr obs
+for glacier_name in glacier_list : 
+    csv_pattern = os.path.join(data_gpr_dir,f"thickness_cts_points_{glacier_name}*.csv")
+    csv_files = sorted(glob.glob(csv_pattern))
+
+    for csv_file in csv_files:
+         
+        columns_to_keep = ["radar_key","distance","easting","northing","elevation","bed_elevation"]
+        gpr_df = pd.read_csv(csv_file,usecols=columns_to_keep)
+        x_gpr = gpr_df["easting"].values
+        y_gpr = gpr_df["northing"].values
+        bed_gpr = gpr_df["bed_elevation"].values
+
+        bed_gpr_grid = interpolate_gpr_to_grid(
+            x_gpr,
+            y_gpr,
+            bed_gpr,
+            Xg,
+            Yg,
+            method="linear"
+        )
+        
 
 
+        all_gpr_fields.append(bed_gpr_grid)
+
+all_gpr_fields = np.nanmean(all_gpr_fields, axis=0)
+plot_beds(all_gpr_fields, "GPR")
 # =========================================================
 # 6. GLACIER MASK (COMMON GRID)
 # =========================================================
@@ -323,6 +373,7 @@ glacier_mask = rasterize_vector_mask(
 bed_furst_masked = np.where(glacier_mask == 0, np.nan, bed_furst_grid)
 bed_vp_masked = np.where(glacier_mask == 0, np.nan, bed_vp_grid)
 bed_franck_masked = np.where(glacier_mask == 0, np.nan, bed_franck_grid)
+bed_gpr_masked = np.where(glacier_mask == 0, np.nan, bed_gpr_grid)
 
 if plot_results :
 
@@ -331,8 +382,8 @@ if plot_results :
     plot_beds(bed_franck_masked, "Franck")
 
 plot_beds_side_by_side(
-    [bed_furst_masked, bed_vp_masked, bed_franck_masked],
-    ["Fürst", "Van Pelt", "Franck"]
+    [bed_furst_masked, bed_vp_masked, bed_franck_masked, all_gpr_fields],
+    ["Fürst", "Van Pelt", "Franck", "GPR"]
 )
 
 
