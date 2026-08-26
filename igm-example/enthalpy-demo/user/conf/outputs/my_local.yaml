@@ -1,0 +1,14 @@
+file_format_list: ['netcdf']
+output_file: output.nc
+vars_to_save:
+  - topg
+  - usurf
+  - thk
+  #- T
+  #- T_pmp
+  - E
+  - E_pmp
+  - slidingco
+  - omega 
+write_ts: False
+output_ts_file: output_ts.nc

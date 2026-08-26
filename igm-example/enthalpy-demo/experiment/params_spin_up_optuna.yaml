@@ -1,0 +1,109 @@
+# @package _global_
+
+# Run with:
+#   igm_run -m +experiment=params_spin_up_obtuna \
+#           hydra/sweeper=igm_optuna \
+#           hydra.sweeper.optuna_config=optuna_ragna_CTS.yaml
+# Or without Optuna (single run): igm_run +experiment=params_spin_up_optuna
+
+
+defaults:
+  - /user/conf/outputs@outputs.my_local: my_local
+    #- /user/conf/processes@processes.clim_spin_up: clim_spin_up
+  - /user/conf/processes@processes.clim_load_climate: clim_load_climate 
+  - /user/conf/processes@processes: #.track_CTS_err: 
+    - track_CTS_err
+
+  - override /inputs: 
+    - local
+  - override /processes:
+    - track_CTS_err
+    - clim_load_climate
+    - iceflow
+    - time
+    - enthalpy
+    - subglacial_hydrology
+  - override /outputs: 
+    - local
+    - my_local
+
+  # - override /hydra/launcher: joblib # no error but does not seem to work compared to if you call it on the command line...
+  # experiment: params # can we make it work here?
+
+  # How to override help:
+  # - hydra/help: my_app_help
+  # - override hydra/help: my_app_help
+
+inputs:
+  local:
+     type: netcdf
+     filename: input_Ragna-Mariebreen.nc
+     coarsening:
+       ratio: 2 
+     
+     
+processes:
+  clim_load_climate:
+    time_dependent_climate: False
+    export_climate_ref: False
+    #spin_up_year: 2023
+  iceflow:
+    method: unified
+    unified:
+      mapping: identity 
+      nbit: 1000
+      optimizer: adam
+        #adam:
+        #lr: 0.9
+      nbit_init: 10000
+      retrain_freq: 1
+      network:
+        pretrained: False
+      halt:
+        freq: 1
+        success:
+          - criterion: patience
+            metric: cost
+            patience:
+              patience: 100 
+      display:
+        print_cost: True
+        print_cost_freq: 5
+    numerics:
+      Nz: 2
+      basis_vertical: molho
+      basis_horizontal: q1
+      vert_spacing: 4.0 
+    physics:
+      viscosity:
+        arrhenius: 78
+      sliding:
+        slidingco: 0.10   
+  enthalpy:
+    numerics:
+      Nz: 30
+    thermal:
+      basal_heat_flux_ref: 0.040 ## W m−2 Schafer et al 2012, Sensitivity of basal condition
+    #sliding_co_thermal_switch: True
+    #thermal_switch:
+      #T0: 1 
+    surface:
+      T_offset: 0.0
+  subglacial_hydrology:
+    mode: till_storage
+    till_storage:
+      h_water_till_max: 2.0      # m — till capacity
+      drainage_rate: 0.001       # m/yr — basal drainage
+      N_ref: 1.0e-3              # MPa
+      e_ref: 0.69
+      C_c: 0.12
+      delta: 0.02
+
+
+  time:
+    start: 1400.0
+    end: 2024.0
+    save: 100.0
+    
+
+    

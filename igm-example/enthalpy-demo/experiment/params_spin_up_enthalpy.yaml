@@ -1,0 +1,90 @@
+# @package _global_
+
+# Step 1: Simple ELA-based SMB
+# The simplest setup: advance-retreat simulation using the built-in smb_simple
+# module with a time-varying Equilibrium Line Altitude (ELA), 1900-2000.
+
+defaults:
+  - /user/conf/outputs@outputs.my_local: my_local
+  - /user/conf/processes@processes.clim_load_climate: clim_load_climate
+  - override /inputs:       # load the local model input file to read data
+    - local
+  - override /processes:    # load the processes to run in this experiment
+    - clim_load_climate
+    - iceflow
+    - enthalpy
+    - arrhenius
+    - subglacial_hydrology
+    - time
+  - override /outputs:      # load the outputs to write to disk
+    - my_local
+      #- live_dashboard        # module to visualize the model state in a live dashboard
+
+inputs:
+  local:
+    filename: input_Ragna-Mariebreen.nc
+
+processes:
+  clim_load_climate:
+    time_dependent_climate: False
+    export_climate_ref: False
+    ela: 500
+    T_over_ela: 1.5
+
+  enthalpy:     
+    numerics:
+      Nz: 30
+    thermal:
+      basal_heat_flux_ref: 0.040 ## W m−2 Schafer et al 2012, Sensitivity of basal condition
+    surface:
+      T_offset: 0.0
+      
+  
+  arrhenius: {}
+  subglacial_hydrology:
+    mode: till_storage
+    till_storage:
+      h_water_till_max: 2.0      # m — till capacity
+      drainage_rate: 0.001       # m/yr — basal drainage
+      N_ref: 1.0e-3              # MPa
+      e_ref: 0.69
+      C_c: 0.12
+      delta: 0.02
+
+      
+  iceflow:
+    physics:
+      viscosity:
+        arrhenius: 78.0         # Flow law coefficient (MPa^{-3} y^{-1}), 78 for temperate (0 °C), 11 for -10°C and for 4 for -20°C
+      sliding:
+        tau_ref: 0.325 # basal shear stress (MPa) required to ..
+        u_ref: 100.0   # ... achieve u_ref basal sliding speed (m/yr)
+    numerics:
+      Nz: 2
+      basis_vertical: molho
+      basis_horizontal: q1
+      vert_spacing: 4.0
+    emulator:
+      retrain_freq: 1
+    
+
+  time:
+    start: 1850.0
+    end: 2024.0
+    save: 20.0
+
+outputs:
+  my_local:
+    file_format_list: ['netcdf']
+    output_file: output.nc
+    vars_to_save:
+      - topg
+      - usurf
+      - uvelsurf
+      - vvelsurf
+      - thk
+      - E
+      - E_pmp
+      - icemask
+
+

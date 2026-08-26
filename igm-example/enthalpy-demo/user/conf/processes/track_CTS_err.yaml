@@ -1,0 +1,4 @@
+track_CTS_err:
+  glacier_name: "ragna_mariebreen"
+  data_dir: "../../../../obs_cts/thickness_cts_csv"
+  year_obs: 2024

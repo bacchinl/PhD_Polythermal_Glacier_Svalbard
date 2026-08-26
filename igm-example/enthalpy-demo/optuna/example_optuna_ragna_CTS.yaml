@@ -1,0 +1,37 @@
+# Single-objective Optuna config for Aletsch (Step 5).
+# Optimizes weight_accumulation and weight_ablation to minimize the DEM misfit
+# (mean STD across the 7 historical observation years).
+
+objectives:
+  - name: cost_cts
+    direction: minimize
+
+n_trials: 80
+n_jobs: 2
+gpu_allow_growth: true
+
+storage: sqlite:///example_optuna_ragna_CTS.db
+study_name: example_ragna_mariebreen
+
+sampler:
+  method: TPESampler
+
+parameters:
+  - name: processes.clim_load_climate.T_over_ela
+    type: float
+    low: -0.5
+    high: 2
+    log: false
+
+  - name: processes.clim_load_climate.ela
+    type: float
+    low: 450
+    high: 550
+    log: false
+
+  - name: processes.time.start
+    type: float
+    low: 1700
+    high: 1850
+    log: false
+
