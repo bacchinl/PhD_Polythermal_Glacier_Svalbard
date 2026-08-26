@@ -24,4 +24,4 @@ At first, the temperature over the ELA is set at 1.4°C and the ELA is set at 50
 
 Run the first experiment with `igm_run +experiment=params_spin_up_enthalpy`
 
-To asses the sensitivity of the hydrothermal structure, change the temperature over the ela, the ela and modify the starting time of the simulation. 
+To asses the sensitivity of the hydrothermal structure, change the temperature over the ela, the ela and modify the starting time of the simulation in the parameter file (experiment/params_spin_up_enthalpy.yaml). 
