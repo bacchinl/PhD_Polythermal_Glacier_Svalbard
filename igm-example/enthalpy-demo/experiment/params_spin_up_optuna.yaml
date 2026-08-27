@@ -1,15 +1,14 @@
 # @package _global_
 
 # Run with:
-#   igm_run -m +experiment=params_spin_up_obtuna \
+#   igm_run -m +experiment=params_spin_up_optuna \
 #           hydra/sweeper=igm_optuna \
-#           hydra.sweeper.optuna_config=optuna_ragna_CTS.yaml
+#           hydra.sweeper.optuna_config=example_optuna_Dronbreen_CTS.yaml
 # Or without Optuna (single run): igm_run +experiment=params_spin_up_optuna
 
 
 defaults:
   - /user/conf/outputs@outputs.my_local: my_local
-    #- /user/conf/processes@processes.clim_spin_up: clim_spin_up
   - /user/conf/processes@processes.clim_load_climate: clim_load_climate 
   - /user/conf/processes@processes: #.track_CTS_err: 
     - track_CTS_err
@@ -37,9 +36,9 @@ defaults:
 inputs:
   local:
      type: netcdf
-     filename: input_Ragna-Mariebreen.nc
+     filename: input_Dronbreen.nc
      coarsening:
-       ratio: 2 
+       ratio: 3 ## increase the ratio for fastest simulations !
      
      
 processes:
@@ -47,6 +46,10 @@ processes:
     time_dependent_climate: False
     export_climate_ref: False
     #spin_up_year: 2023
+  track_CTS_err:
+    glacier_name: "dronbreen"
+    year_obs: 2022
+
   iceflow:
     method: unified
     unified:
@@ -83,10 +86,7 @@ processes:
     numerics:
       Nz: 30
     thermal:
-      basal_heat_flux_ref: 0.040 ## W m−2 Schafer et al 2012, Sensitivity of basal condition
-    #sliding_co_thermal_switch: True
-    #thermal_switch:
-      #T0: 1 
+      basal_heat_flux_ref: 0.040  
     surface:
       T_offset: 0.0
   subglacial_hydrology:
@@ -103,7 +103,10 @@ processes:
   time:
     start: 1400.0
     end: 2024.0
-    save: 100.0
+    save: 400.0
     
 
-    
+outputs:
+  my_local:
+    write_ts: False
+

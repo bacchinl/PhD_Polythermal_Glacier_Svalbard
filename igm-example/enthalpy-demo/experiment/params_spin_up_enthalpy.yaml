@@ -22,7 +22,7 @@ defaults:
 
 inputs:
   local:
-    filename: input_Ragna-Mariebreen.nc
+    filename: input_Dronbreen.nc
 
 processes:
   clim_load_climate:
@@ -30,6 +30,7 @@ processes:
     export_climate_ref: False
     ela: 500
     T_over_ela: 1.5
+
 
   enthalpy:     
     numerics:
