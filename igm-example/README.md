@@ -1,4 +1,4 @@
-#Enthalpy module demonstration
+#Enthalpy module demonstration - Dronbreen
 **A specific example get familiar with the enthalpy module capacities.**
 
 
@@ -6,10 +6,10 @@
 This example is divided in two part :
 
 - A first simple run of forward modelling with the enthalpy module activated
-- A data assimilition multirun using optuna to fit observed cold–temperate transition surface (CTS) from Mannerfelt et al. *submitted*(https://zenodo.org/records/17882300)
+- A data assimilition multirun using optuna to fit observed cold–temperate transition surface (CTS) from Mannerfelt et al. *submitted* (https://zenodo.org/records/17882300)
 
 
-Both on X, a polythermal glacier located in Svalbard. Here with a resolution of 20m using kriging method for the thickness reconstruction.
+Both on Dronbreen, a polythermal glacier located in Svalbard and with a lot of GPR measurement available. The input file have a resolution of 20m using kriging method for the thickness reconstruction.
 
 
 ## Step 1 - Forward modelling with the enthalpy module
@@ -24,4 +24,8 @@ At first, the temperature over the ELA is set at 1.4°C and the ELA is set at 50
 
 Run the first experiment with `igm_run +experiment=params_spin_up_enthalpy`
 
-To asses the sensitivity of the hydrothermal structure, change the temperature over the ela, the ela and modify the starting time of the simulation in the parameter file (experiment/params_spin_up_enthalpy.yaml). 
+To assess the sensitivity of the hydrothermal structure to the parametrisation, change the temperature over the ela, the ela and modify the starting time of the simulation in the parameter file (experiment/params_spin_up_enthalpy.yaml). 
+
+
+## Step 2 - Finding the best parameters with optuna
+
