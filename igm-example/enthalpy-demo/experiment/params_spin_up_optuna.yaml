@@ -41,7 +41,7 @@ inputs:
        #filename: input_Ragna-Mariebreen.nc
      filename: input_Dronbreen.nc
      coarsening:
-       ratio: 1
+       ratio: 3
      
      
 processes:
@@ -60,7 +60,7 @@ processes:
         arrhenius: 78.0         # Flow law coefficient (MPa^{-3} y^{-1}), 78 for temperate (0 °C), 11 for -10°C and for 4 for -20°C
       sliding:
         tau_ref: 0.325 # basal shear stress (MPa) required to ..
-        u_ref: 100.0   # ... achieve u_ref basal sliding speed (m/yr)
+        u_ref: 500.0   # ... achieve u_ref basal sliding speed (m/yr)
     numerics:
       Nz: 2
       basis_vertical: molho
@@ -88,7 +88,7 @@ processes:
 
 
   time:
-    start: 1400.0
+    start: 1600.0
     end: 2024.0
     save: 400.0
     

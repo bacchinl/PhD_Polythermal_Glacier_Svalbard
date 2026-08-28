@@ -23,12 +23,15 @@ defaults:
 inputs:
   local:
     filename: input_Dronbreen.nc
-
+    coarsening:
+      ratio: 3
+  ----
+---------------------------------------------------------------------------------------------------|        ratio: 3
 processes:
   clim_load_climate:
     time_dependent_climate: False
     export_climate_ref: False
-    ela: 500
+    ela: 675
     T_over_ela: 1.5
 
 
@@ -59,7 +62,7 @@ processes:
         arrhenius: 78.0         # Flow law coefficient (MPa^{-3} y^{-1}), 78 for temperate (0 °C), 11 for -10°C and for 4 for -20°C
       sliding:
         tau_ref: 0.325 # basal shear stress (MPa) required to ..
-        u_ref: 100.0   # ... achieve u_ref basal sliding speed (m/yr)
+        u_ref: 500.0   # ... achieve u_ref basal sliding speed (m/yr)
     numerics:
       Nz: 2
       basis_vertical: molho
@@ -70,7 +73,7 @@ processes:
     
 
   time:
-    start: 1850.0
+    start: 1600.0
     end: 2024.0
     save: 20.0
 

@@ -1,4 +1,5 @@
 #Enthalpy module demonstration - Dronbreen
+
 **A specific example get familiar with the enthalpy module capacities.**
 
 
@@ -28,13 +29,18 @@ processes.clim_load_climate.ela
 
 Run the experiment with `igm_run +experiment=params_spin_up_enthalpy`
 
-
+To vizualize the result, go in `Codes_plot`, modify `date_simu` in `plot_CTS.py` to match your last run datetime and run it. The results are stored in the simulation output directory. 
 
 ## Step 2 - Finding the best parameters with Optuna
 
-The second experiment uses *Optuna* to find the parameters that best reproduce the observed CTS from GPR measurements.
+The second experiment uses **Optuna** to find the parameters that best reproduce the observed CTS from GPR measurements.
 
 Optuna will optimises three parameters (Temperature over ELA, ELA and simulation duration) to find the lowest RMSE between the modelled CTS and the observed CTS. For each trial, Optuna proposes a new combination of these parameters, IGM runs the simulation, computes the modelled CTS, and returns the CTS RMSE.
+Optuna selects the parameter values using a Bayesian optimisation strategy, using the results of previous trials to identify promising regions of the parameter space. It progressively focuses the search on parameter combinations that are expected to reduce the CTS RMSE while still exploring new regions of the parameter space.
+
+Each single run take approximatly 45 seconds (three are run in parallel, sweet spot RTX 4060), to set the number of runs, change `n_trials` in `optuna/example_optuna_Dronbreen_CTS.yaml` 
+
+Run the experiment with :
 
 `
 igm_run -m \
@@ -45,9 +51,13 @@ igm_run -m \
 
 
 
+
 ## Vizualitation tools :
 
 For optuna : `python plot_optuna.py` or `optuna-dashboard sqlite:///example_optuna_Dronbreen_CTS.db` and connect to the given link with your browser. 
 
+For the hydrothermal structure :
+- Single run : `Codes_plot/plot_CTS.py` to make gifs, `Codes_plot/plot_all_CTS.py` to plot all the available observation and compare it to the simulation.
+- Ensemble : `Codes_plot/ensemble_CTS.py` to plot the 5 (can be changed according to the number your running) best modelled CTS and compare it to the observed one (with uncertainities)
 
 
