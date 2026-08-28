@@ -12,7 +12,7 @@ import imageio
 # =====================================================
 # PARAMETERS
 # =====================================================
-date_simu = "2026-08-27/15-51-11/60"
+date_simu = "2026-08-28/13-39-53/33"
 
 smooth = False
 MAKE_GIF = False
@@ -134,7 +134,7 @@ for csv_file in csv_files:
         radar_line
     )
 
-    os.makedirs(radar_out_dir, exist_ok=True)
+    #os.makedirs(radar_out_dir, exist_ok=True)
 
     # -------------------------------------------------
     # LOAD GPR DATA
@@ -510,20 +510,28 @@ for csv_file in csv_files:
 
             cts_obs_plot_current = cts_obs_plot.copy()
 
-            if mask_for_obs:
+            bg_obs = np.interp(
+                dist_obs,
+                dist_km,
+                bg
+            )
+            us_obs = np.interp(
+                dist_obs,
+                dist_km,
+                us
+            )
 
-                
-                bg_obs = np.interp(
-                    dist_obs,
-                    dist_km,
-                    bg
-                )
+            valid_obs = (
+                (cts_obs_plot_current >= bg_obs)
+                &
+                (cts_obs_plot_current <= us_obs)
+            )
 
-                cts_obs_plot_current = np.where(
-                    cts_obs_plot_current > bg_obs,
-                    cts_obs_plot_current,
-                    np.nan
-                )
+            cts_obs_plot_current = np.where(
+                valid_obs,
+                cts_obs_plot_current,
+                np.nan
+            )
 
             plt.plot(
                 dist_obs,

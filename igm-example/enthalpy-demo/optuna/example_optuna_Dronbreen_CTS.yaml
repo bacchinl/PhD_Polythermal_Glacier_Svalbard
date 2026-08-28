@@ -31,7 +31,7 @@ parameters:
 
   - name: processes.time.start
     type: float
-    low: 1700
+    low: 1600
     high: 1850
     log: false
 
