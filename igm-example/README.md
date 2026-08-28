@@ -20,7 +20,7 @@ In a real (scandinavian-type) polythermal glacier, the temperate ice is formed b
 
 The constant temperature is set over the ela with the parameter *cfg.processes.clim_load_climate.T_over_ela* and the Equilibrium Line Altitude is set through the parameter *cfg.processes.clim_load_climate.ela* in the "params" file. 
 
-At first, the temperature over the ELA is set at 1.4°C and the ELA is set at 500m.
+At first, the temperature over the ELA is set at 1.5°C and the ELA is set at 660m. The simulation start in 1785.
 
 Run the first experiment with `igm_run +experiment=params_spin_up_enthalpy`
 

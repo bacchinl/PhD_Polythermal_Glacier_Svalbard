@@ -13,8 +13,8 @@ import imageio
 # PARAMETERS
 # =====================================================
 date_simu = "2026-08-26/15-59-32/"
-which_flowline = "Ragna_Mariebreen"
-point_fin = 100e3 #8.4e3  # m C'EST SUREMENT MOI QUI POSE PB
+which_flowline = "Dronbreen"
+point_fin = 100e3 
 point_deb_obs = -1 
 point_fin_obs = 200
 smooth = False
@@ -30,19 +30,14 @@ mask_for_obs = True
 # PATHS
 # =====================================================
 simu_path = os.path.join("../outputs", date_simu)
-#out_dir = os.path.join(simu_path, "Plots/ice_type")
-#os.makedirs(out_dir, exist_ok=True)
-
-flowline_file = os.path.join("../data", f"kropp_centerline.csv")
 
 
 
 data_dir = "../obs_cts/thickness_cts_csv"
 
-#radar_line = "ragna_mariebreen-20240412-DAT_0404_A1_1"
-#radar_line = "ragna_mariebreen-20240412-DAT_0405_A1_1"
-radar_line = "ragna_mariebreen-20230305-DAT_0067_A1_1"
-#radar_line = "ragna_mariebreen-20230305-DAT_0068_A1_3"
+radar_line = "dronbreen-20220328-DAT_0226_A1_1"
+#radar_line = "dronbreen-20220329-DAT_0234_A1_1"
+#radar_line = "dronbreen-20220328-DAT_0230_A1_4"
 
 gpr_csv_path = os.path.join(
     data_dir,
@@ -80,9 +75,7 @@ if plot_obs:
 
     cts_obs = gpr_df_trace["temperate_elevation"].values
     dist_max = np.max(dist_km)
-    #dist_km = dist_max-dist_km ##Glacier flowing toward west => returns for better visu
-
-
+    
     print("Lenght dist_km : ", len(dist_km), " VS cts_obs ", len(cts_obs ))
 
 
@@ -94,13 +87,7 @@ if plot_obs:
 
     else : 
         dist_obs = dist_km
-    #cts_obs_file = os.path.join("../data", f"CTS_centerline_ragna.csv")
-    #df_obs = pd.read_csv(cts_obs_file)
-    #x_obs = df_obs["x"].values
-    #cts_obs = df_obs[" y"].values
-    #long_pr_obs = 7.49e3
-    #dec = point_fin - long_pr_obs
-    
+        
 else:
     flow = pd.read_csv(flowline_file)
     x_flow = flow["x"].values
