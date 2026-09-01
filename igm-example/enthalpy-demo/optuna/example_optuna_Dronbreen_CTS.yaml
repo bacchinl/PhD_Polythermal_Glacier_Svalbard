@@ -25,13 +25,13 @@ parameters:
 
   - name: processes.clim_load_climate.ela
     type: float
-    low: 600
-    high: 750
+    low: 650
+    high: 720
     log: false
 
   - name: processes.time.start
     type: float
-    low: 1600
-    high: 1850
+    low: 1500
+    high: 1700
     log: false
 

@@ -1,4 +1,4 @@
-#Enthalpy module demonstration - Dronbreen
+# Enthalpy module demonstration - Dronbreen
 
 **A specific example get familiar with the enthalpy module capacities.**
 
@@ -29,7 +29,8 @@ processes.clim_load_climate.ela
 
 Run the experiment with `igm_run +experiment=params_spin_up_enthalpy`
 
-To vizualize the result, go in `Codes_plot`, modify `date_simu` in `plot_CTS.py` to match your last run datetime and run it. The results are stored in the simulation output directory. 
+To vizualize the result, go in `Codes_plots`, 	and run `python plot_all_cts.py`. This codes will generate profile plots along the GPR observation directly for the latest simulation.
+You can also point it durectly to the simulation of your choice with `python plot_all_cts.py yyyy-mm-dd/hh-mm-ss`. 
 
 ## Step 2 - Finding the best parameters with Optuna
 

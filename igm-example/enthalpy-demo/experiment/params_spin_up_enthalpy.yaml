@@ -25,8 +25,8 @@ inputs:
     filename: input_Dronbreen.nc
     coarsening:
       ratio: 3
-  ----
----------------------------------------------------------------------------------------------------|        ratio: 3
+  
+
 processes:
   clim_load_climate:
     time_dependent_climate: False

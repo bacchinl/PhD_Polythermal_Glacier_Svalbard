@@ -1,4 +1,5 @@
 import os
+import sys
 import glob
 import numpy as np
 import pandas as pd
@@ -12,7 +13,6 @@ import imageio
 # =====================================================
 # PARAMETERS
 # =====================================================
-date_simu = "2026-08-28/13-39-53/33"
 
 smooth = False
 MAKE_GIF = False
@@ -24,11 +24,29 @@ plot_obs = True
 plot_ela = False
 mask_for_obs = False
 
+outputs_path = "../multirun"
+
+if len(sys.argv) > 1:
+    # Argument
+    date_simu = sys.argv[1]
+else:
+    # Most recent simulation in outputs
+    simulations = [
+        path for path in glob.glob(os.path.join(outputs_path, "*", "*"))
+        if os.path.isdir(path)
+    ]
+
+    if not simulations:
+        raise FileNotFoundError(f"No simulation output.nc found in {outputs_path}")
+
+    latest_simu = max(simulations, key=os.path.getmtime)
+    date_simu = os.path.relpath(latest_simu, outputs_path)
+
 
 # =====================================================
 # PATHS
 # =====================================================
-simu_path = os.path.join("../multirun", date_simu)
+simu_path = os.path.join(outputs_path, date_simu)
 
 data_dir = "../obs_cts/thickness_cts_csv"
 glacier_name = "dronbreen"
@@ -42,18 +60,16 @@ csv_pattern = os.path.join(
 
 csv_files = sorted(glob.glob(csv_pattern))
 
-print(f"{len(csv_files)} fichiers CSV trouvés")
-
 if len(csv_files) == 0:
     raise FileNotFoundError(
-        f"Aucun fichier trouvé avec le pattern : {csv_pattern}"
+        f"No file found with pattern : {csv_pattern}"
     )
 
 
 # =====================================================
 # OUTPUT DIRECTORY
 # =====================================================
-# Tous les profils seront rangés directement dans :
+# Plots are stored in :
 # .../Plots/Ice_type/
 out_dir = os.path.join(simu_path, "Plots", "Ice_type")
 os.makedirs(out_dir, exist_ok=True)
@@ -134,8 +150,7 @@ for csv_file in csv_files:
         radar_line
     )
 
-    #os.makedirs(radar_out_dir, exist_ok=True)
-
+    
     # -------------------------------------------------
     # LOAD GPR DATA
     # -------------------------------------------------
@@ -146,7 +161,8 @@ for csv_file in csv_files:
             "distance",
             "easting",
             "northing",
-            "temperate_elevation"
+            "temperate_elevation",
+            "bed_elevation"
         ]
 
         gpr_df = pd.read_csv(
@@ -154,14 +170,12 @@ for csv_file in csv_files:
             usecols=columns_to_keep
         )
 
-        # Si le CSV contient plusieurs radar lines,
-        # on ne garde que celle correspondant au fichier.
+        
         gpr_df_trace = gpr_df[
             gpr_df["radar_key"] == radar_line
         ].copy()
 
-        # Si aucun point ne correspond, on peut aussi utiliser
-        # directement tout le fichier.
+    
         if len(gpr_df_trace) == 0:
             print(
                 f"WARNING: aucun radar_key = {radar_line}"
@@ -173,7 +187,8 @@ for csv_file in csv_files:
             subset=[
                 "easting",
                 "northing",
-                "temperate_elevation"
+                "temperate_elevation",
+                "bed_elevation"
             ]
         )
 
@@ -182,6 +197,9 @@ for csv_file in csv_files:
         cts_obs = gpr_df_trace[
             "temperate_elevation"
         ].values
+        bed_obs = gpr_df_trace[
+            "bed_elevation"].values
+
 
         # -------------------------------------------------
         # SMOOTH FLOWLINE
@@ -190,8 +208,8 @@ for csv_file in csv_files:
 
             if len(x_flow) < 4:
                 print(
-                    f"WARNING: pas assez de points pour "
-                    f"lisser {radar_line}"
+                    f"WARNING: not enough points to smooth "
+                    f" {radar_line}"
                 )
                 continue
 
@@ -208,10 +226,7 @@ for csv_file in csv_files:
                 tck
             )
 
-            # Attention : si on interpole la flowline,
-            # le nombre de points change.
-            # Les observations CTS doivent donc être
-            # interpolées sur cette nouvelle distance.
+            
             dist_flow_original = np.concatenate([
                 [0],
                 np.cumsum(
@@ -238,8 +253,7 @@ for csv_file in csv_files:
                 )
             ])
 
-            # Interpolation des observations sur la
-            # nouvelle flowline
+            # obs interp on flowline
             cts_obs = np.interp(
                 dist_flow_smooth,
                 dist_flow_original,
@@ -271,20 +285,12 @@ for csv_file in csv_files:
         dist_km = dist_flow[mask_flow] / 1000.0
 
         cts_obs = cts_obs[mask_flow]
+        bed_obs = bed_obs[mask_flow]
 
-        # Reverse comme dans ton code original
-        dist_km = dist_km#[::-1]
-        cts_obs = cts_obs#[::-1]
 
         dist_max = np.max(dist_km)
 
-        print(
-            "Length dist_km:",
-            len(dist_km),
-            "VS cts_obs:",
-            len(cts_obs)
-        )
-
+        
         # -------------------------------------------------
         # OPTIONAL OBSERVATION MASK
         # -------------------------------------------------
@@ -306,8 +312,7 @@ for csv_file in csv_files:
 
     else:
 
-        # Si plot_obs = False, il faut quand même avoir
-        # une flowline pour faire l'interpolation.
+        # Si plot_obs = False, still need flowline
         raise ValueError(
             "plot_obs=False n'est pas compatible avec "
             "le traitement automatique des CSV."
@@ -332,7 +337,7 @@ for csv_file in csv_files:
     usurf_f = np.full_like(thk_f, np.nan)
     topg_f = np.full_like(thk_f, np.nan)
 
-    print("Interpolating model along flowline...")
+    
 
     pts2d = np.vstack([
         y_flow,
@@ -381,8 +386,7 @@ for csv_file in csv_files:
             E3d[it, k] = interp_E(pts3d)
             Epmp3d[it, k] = interp_Epmp(pts3d)
 
-    print("Interpolation completed")
-
+    
 
     # =================================================
     # ICE TYPE
@@ -452,7 +456,7 @@ for csv_file in csv_files:
     for it in indices:
 
         ice_crop = ice_type_3d[it,:,mask_flow]
-        print("Shape de ice crop : ", ice_crop.shape)
+        
         if ice_crop.shape != x.shape:
             ice_crop = ice_crop.T
 
@@ -510,22 +514,11 @@ for csv_file in csv_files:
 
             cts_obs_plot_current = cts_obs_plot.copy()
 
-            bg_obs = np.interp(
-                dist_obs,
-                dist_km,
-                bg
-            )
-            us_obs = np.interp(
-                dist_obs,
-                dist_km,
-                us
-            )
+            bg_obs = np.interp(dist_obs,dist_km,bg)
 
-            valid_obs = (
-                (cts_obs_plot_current >= bg_obs)
-                &
-                (cts_obs_plot_current <= us_obs)
-            )
+            us_obs = np.interp(dist_obs,dist_km,us)
+
+            valid_obs = ((cts_obs_plot_current >= bg_obs)&(cts_obs_plot_current <= us_obs)&(cts_obs_plot_current > bed_obs))
 
             cts_obs_plot_current = np.where(
                 valid_obs,
@@ -633,7 +626,7 @@ for csv_file in csv_files:
 
         plt.title(
             f"Ice type vertical section – "
-            f"{glacier_name} – {radar_line}",
+            f"{radar_line}",
             fontsize=16
         )
 
