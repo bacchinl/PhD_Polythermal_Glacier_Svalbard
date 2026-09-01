@@ -1,4 +1,4 @@
-# Enthalpy module demonstration - Dronbreen
+# Enthalpy module demonstration - Drønbreen
 
 **A specific example get familiar with the enthalpy module capacities.**
 
@@ -8,7 +8,7 @@ This example is divided into two parts:
 - A first simple forward modelling run with the enthalpy module activated.
 - A data assimilation multirun using Optuna to fit observed cold–temperate transition surfaces (CTS) from Mannerfelt et al. *submitted* (https://zenodo.org/records/17882300).
 
-Both experiments are performed on Dronbreen, a polythermal glacier located in Svalbard with a large number of available GPR measurements. The input file has a 20 m spatial resolution, with ice thickness reconstructed using kriging.
+Both experiments are performed on Drønbreen, a polythermal glacier located in Svalbard with a large number of available GPR measurements. The input file has a 20 m spatial resolution, with ice thickness reconstructed using kriging.
 
 ## Step 1 - Forward modelling with the enthalpy module
 
