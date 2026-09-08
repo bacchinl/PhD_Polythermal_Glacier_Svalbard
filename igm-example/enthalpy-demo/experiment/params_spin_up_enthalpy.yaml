@@ -6,6 +6,7 @@
 
 defaults:
   - /user/conf/outputs@outputs.my_local: my_local
+  - /user/conf/outputs@outputs.plot_CTS: plot_CTS
   - /user/conf/processes@processes.clim_load_climate: clim_load_climate
   - override /inputs:       # load the local model input file to read data
     - local
@@ -18,7 +19,7 @@ defaults:
     - time
   - override /outputs:      # load the outputs to write to disk
     - my_local
-      #- live_dashboard        # module to visualize the model state in a live dashboard
+    - plot_CTS
 
 inputs:
   local:
@@ -74,8 +75,8 @@ processes:
 
   time:
     start: 1600.0
-    end: 2024.0
-    save: 20.0
+    end: 2022.0
+    save: 100.0
 
 outputs:
   my_local:

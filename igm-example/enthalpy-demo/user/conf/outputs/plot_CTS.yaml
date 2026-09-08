@@ -1,0 +1,5 @@
+plot_obs: True
+plot_ela:  False
+data_dir: "../../../obs_cts/thickness_cts_csv"
+year_obs: 2022
+glacier_name: "dronbreen"

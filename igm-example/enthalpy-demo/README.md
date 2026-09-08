@@ -29,8 +29,8 @@ processes.clim_load_climate.ela
 
 Run the experiment with `igm_run +experiment=params_spin_up_enthalpy`
 
-To vizualize the result, go in `Codes_plots`, 	and run `python plot_all_cts.py`. This codes will generate profile plots along the GPR observation directly for the latest simulation.
-You can also point it durectly to the simulation of your choice with `python plot_all_cts.py yyyy-mm-dd/hh-mm-ss`. 
+To vizualize the result, go in the outputs directory and the date of your run. A plot directory have been generated and show the comparaison between modelled (colors) and observed hydrothermal structure (CTS in black dash). 
+
 
 ## Step 2 - Finding the best parameters with Optuna
 
