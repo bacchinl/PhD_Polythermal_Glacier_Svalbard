@@ -1,7 +1,9 @@
+import time
 import xarray as xr
 import numpy as np
 import tensorflow as tf
 import os
+from netCDF4 import Dataset
 
 from igm.utils.math.getmag import getmag
 
@@ -71,8 +73,6 @@ def run(cfg, state):
     if 'tif' in cfg.outputs.my_local.file_format_list:
         write_tif(cfg,state)
 
-    if cfg.outputs.my_local.write_ts:
-        update_netcdf_ts(cfg,state)
 
 #############################################
 
@@ -101,142 +101,297 @@ def write_tif(cfg,state):
 #####################################
 
 def update_netcdf_ex(cfg,state):
-
+    
+    
     file_path = cfg.outputs.my_local.output_file
     var_list = cfg.outputs.my_local.vars_to_save
 
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    def get_time_value():
+        """Return current model time as a scalar numpy value."""
+        return getattr(
+            state,
+            "t",
+            tf.constant(0)
+        ).numpy()
+
+    def to_numpy(value):
+        """Convert TensorFlow tensor to numpy when necessary."""
+        return value.numpy() if hasattr(value, "numpy") else value
+
     def create_data_vars():
+        """
+        Extract requested variables from state and convert them
+        to numpy arrays with the appropriate dimensions.
+        """
+
         data_vars = {}
 
         for var in var_list:
+
             if not hasattr(state, var):
-                print("No ", var, " in State !" )
+                print(f"No {var} in State!")
                 continue
 
             arr = vars(state)[var].numpy()
 
+            # ----------------------------------------------------------
+            # 2D variable: y, x
+            # ----------------------------------------------------------
             if arr.ndim == 2:
+
                 data = xr.DataArray(
                     arr,
                     dims=("y", "x"),
                 )
+
+            # ----------------------------------------------------------
+            # Scalar variable
+            # ----------------------------------------------------------
             elif arr.ndim == 0:
+
                 data = xr.DataArray(
                     arr,
                     dims=(),
                 )
 
+            # ----------------------------------------------------------
+            # 3D variable: z, y, x
+            # ----------------------------------------------------------
             elif arr.ndim == 3:
+
                 Nz = arr.shape[0]
+
                 data = xr.DataArray(
                     arr,
                     dims=("z", "y", "x"),
-                    coords={"z": np.arange(Nz)}
+                    coords={
+                        "z": np.arange(Nz)
+                    },
                 )
 
             else:
-                continue  # sécurité
+                # Unsupported dimensionality
+                continue
 
+            # Add time dimension
             data = data.expand_dims(
-                time=[getattr(state, 't', tf.constant(0)).numpy()]
+                time=[get_time_value()]
             )
 
-            if var in state.var_info_ncdf_ex:
-                data.attrs["long_name"], data.attrs["units"] = state.var_info_ncdf_ex[var]
+            # Add metadata if available
+            if (
+                hasattr(state, "var_info_ncdf_ex")
+                and var in state.var_info_ncdf_ex
+            ):
+                data.attrs["long_name"], data.attrs["units"] = (
+                    state.var_info_ncdf_ex[var]
+                )
 
             data_vars[var] = data
 
+        if cfg.outputs.my_local.add_thk_vol:
+
+            thk = to_numpy(state.thk)
+            dx = to_numpy(state.dx)
+
+            vol = np.sum(thk) * (dx ** 2) / 1e9
+            area = np.sum(thk > 1) * (dx ** 2) / 1e6
+
+            
+            data_vars["vol"] = xr.DataArray([vol],dims=("time"))
+
+            data_vars["area"] = xr.DataArray([area],dims=("time"))
+
+            # Metadata
+            if hasattr(state, "var_info_ncdf_ts"):
+
+                if "vol" in state.var_info_ncdf_ts:
+                    data_vars["vol"].attrs["long_name"] = (
+                        state.var_info_ncdf_ts["vol"][0]
+                    )
+                    data_vars["vol"].attrs["units"] = (
+                        state.var_info_ncdf_ts["vol"][1]
+                    )
+
+                if "area" in state.var_info_ncdf_ts:
+                    data_vars["area"].attrs["long_name"] = (
+                        state.var_info_ncdf_ts["area"][0]
+                    )
+                    data_vars["area"].attrs["units"] = (
+                        state.var_info_ncdf_ts["area"][1]
+                    )
+
+            # Fallback metadata
+            data_vars["vol"].attrs.setdefault(
+                "long_name",
+                "Total ice volume",
+            )
+            data_vars["vol"].attrs.setdefault(
+                "units",
+                "10^9 km^3",
+            )
+
+            data_vars["area"].attrs.setdefault(
+                "long_name",
+                "Ice-covered area",
+            )
+            data_vars["area"].attrs.setdefault(
+                "units",
+                "10^6 km^2",
+            )
+
+
         return data_vars
 
-    if not hasattr(state, "already_called_update_local"):
-        if hasattr(state, "logger"):
-            state.logger.info("Creating new NetCDF file with xarray")
+    # ------------------------------------------------------------------
+    # Prepare variables
+    # ------------------------------------------------------------------
 
-        coords = {
-            "x": ("x", state.x.numpy()),
-            "y": ("y", state.y.numpy()),
-            "time": ("time", [getattr(state, 't', tf.constant(0)).numpy()])
-        }
+    data_vars = create_data_vars()
 
-        #if (hasattr(cfg, 'processes') and hasattr(cfg.processes, 'iceflow')):
-         #   coords["z"] = ("z", np.arange(cfg.processes.enthalpy.numerics.Nz))
+    time_value = get_time_value()
 
-        ds = xr.Dataset(
-            data_vars=create_data_vars(),
-            coords=coords,
-            attrs={"pyproj_srs": getattr(state, "pyproj_srs", "")},
-        )
+    # ------------------------------------------------------------------
+    # CASE 1: File does not exist -> create it
+    # ------------------------------------------------------------------
 
-        ds.to_netcdf(file_path, mode="w")
+    if not os.path.exists(file_path):
 
-        state.already_called_update_local = True
-    else:
-        if hasattr(state, "logger"):
-            state.logger.info(f"Appending to NetCDF file at iteration {state.it}")
-
-        ds_existing = xr.open_dataset(file_path)
-        new_data = xr.Dataset(
-            data_vars=create_data_vars(),
-            coords={"time": [getattr(state, 't', tf.constant(0)).numpy()]},
-        )
-
-        # concat and write again
-        ds_concat = xr.concat([ds_existing, new_data], dim="time")
-        ds_existing.close()         # <-- close before deleting
-        os.remove(file_path)
-        ds_concat.to_netcdf(file_path, mode="w")  # overwrite safely
-        ds_concat.close()           # <-- good practice to close the new dataset too
-
-#########################################################
-
-def update_netcdf_ts(cfg,state):
-
-    file_path = cfg.outputs.my_local.output_ts_file
-    
-    vol = np.sum(state.thk) * (state.dx**2) / 10**9
-    area = np.sum(state.thk > 1) * (state.dx**2) / 10**6
-
-    if not hasattr(state, "already_called_update_write_ts"):
-        state.already_called_update_write_ts = True
-
-        if hasattr(state, "logger"):
-            state.logger.info("Initialize NCDF ts output Files")
-
-        # Initialize the xarray Dataset
-        ds = xr.Dataset(
-            {
-                "time": ("time", [getattr(state, 't', tf.constant(0)).numpy()]),
-                "vol": ("time", [vol]),
-                "area": ("time", [area]),
-            },
-            attrs={
-                "vol_long_name": state.var_info_ncdf_ts["vol"][0],
-                "vol_units": state.var_info_ncdf_ts["vol"][1],
-                "area_long_name": state.var_info_ncdf_ts["area"][0],
-                "area_units": state.var_info_ncdf_ts["area"][1],
-            }
-        )
-        ds.time.attrs["units"] = "yr"
-        ds.time.attrs["long_name"] = "time"
-        ds.to_netcdf(file_path, mode="w", format="NETCDF4")
-
-    else:
         if hasattr(state, "logger"):
             state.logger.info(
-                "Write NCDF ts file at itaration : " + str(state.it)
+                f"Creating new NetCDF file: {file_path}"
             )
 
-        # Append new data to existing NetCDF file
-        with xr.open_dataset(file_path) as ds:
-            ds_new = xr.Dataset(
-                {
-                    "time": ("time", [getattr(state, 't', tf.constant(0)).numpy()]),
-                    "vol": ("time", [vol]),
-                    "area": ("time", [area]),
-                }
+        # Build initial dataset
+        ds = xr.Dataset(
+            data_vars=data_vars,
+            coords={
+                "x": (
+                    "x",
+                    state.x.numpy()
+                ),
+                "y": (
+                    "y",
+                    state.y.numpy()
+                ),
+                "time": (
+                    "time",
+                    [time_value]
+                ),
+            },
+            attrs={
+                "pyproj_srs": getattr(
+                    state,
+                    "pyproj_srs",
+                    ""
+                )
+            },
+        )
+
+        # --------------------------------------------------------------
+        # Create a temporary file first.
+        #
+        # If the program crashes during creation, the existing/final
+        # file is never touched.
+        # --------------------------------------------------------------
+
+        tmp_file = file_path + ".tmp"
+
+        try:
+
+            # Make sure an old temporary file doesn't interfere
+            if os.path.exists(tmp_file):
+                os.remove(tmp_file)
+
+            ds.to_netcdf(
+                tmp_file,
+                mode="w",
+                unlimited_dims=["time"],
             )
-            ds_combined = xr.concat([ds, ds_new], dim="time")
-            ds.close()         # <-- close before deleting
-            os.remove(file_path)
-            ds_combined.to_netcdf(file_path, mode="w", format="NETCDF4") 
-            ds_combined.close()           # close the new dataset too
+
+            ds.close()
+
+            # Atomic replacement
+            os.replace(
+                tmp_file,
+                file_path
+            )
+
+        except Exception:
+
+            # Close dataset if necessary
+            try:
+                ds.close()
+            except Exception:
+                pass
+
+            # Remove incomplete temporary file
+            if os.path.exists(tmp_file):
+                try:
+                    os.remove(tmp_file)
+                except Exception:
+                    pass
+
+            raise
+
+    # ------------------------------------------------------------------
+    # File already exists -> append time dim
+    # ------------------------------------------------------------------
+
+    else:
+
+        if hasattr(state, "logger"):
+            state.logger.info(
+                f"Appending to NetCDF file at iteration "
+                f"{getattr(state, 'it', '?')}"
+            )
+
+        # --------------------------------------------------------------
+        # Open existing NetCDF in append mode
+        # --------------------------------------------------------------
+
+        with Dataset(file_path, mode="a") as nc:
+
+            # ----------------------------------------------------------
+            # Current number of timesteps
+            # ----------------------------------------------------------
+
+            time_index = len(nc.dimensions["time"])
+
+            # ----------------------------------------------------------
+            # Write time
+            # ----------------------------------------------------------
+
+            nc.variables["time"][time_index] = time_value
+
+            # ----------------------------------------------------------
+            # Write each variable
+            # ----------------------------------------------------------
+
+            for var, data_array in data_vars.items():
+
+                if var not in nc.variables:
+                    if hasattr(state, "logger"):
+                        state.logger.warning(
+                            f"Variable {var} not found in existing "
+                            f"NetCDF file. Skipping."
+                        )
+                    continue
+
+                arr = data_array.values
+
+                if arr.ndim > 0 and arr.shape[0] == 1:
+                    arr = arr[0]
+
+                # Write new timestep
+                nc.variables[var][time_index, ...] = arr
+
+            # Make sure everything is flushed to disk
+            nc.sync()
+
+
+#########################################################

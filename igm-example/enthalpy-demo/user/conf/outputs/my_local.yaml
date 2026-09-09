@@ -10,5 +10,4 @@ vars_to_save:
   - E_pmp
   - slidingco
   - omega 
-write_ts: False
-output_ts_file: output_ts.nc
+add_thk_vol: True
